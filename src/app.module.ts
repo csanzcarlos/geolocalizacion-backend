@@ -6,18 +6,16 @@ import { UsersModule } from './users/users.module';
 import { ClientsModule } from './clients/clients.module';
 import { VisitsModule } from './visits/visits.module';
 
-
 @Module({
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: 'Lider2025#',
-      database: 'ventas_gps_db',
+      url: process.env.DATABASE_URL, // ✅ Render la inyecta automáticamente
+      ssl: process.env.NODE_ENV === 'production' 
+        ? { rejectUnauthorized: false }  // 🔐 Render requiere SSL
+        : false,                         // 🚀 En local no uses SSL
       autoLoadEntities: true,
-      synchronize: true,
+      synchronize: true, // ⚠️ Solo usar en desarrollo (en producción mejor migrations)
     }),
     UsersModule,
     ClientsModule,
