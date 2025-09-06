@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 {
   "name": "geolocalizacion-backend",
   "version": "0.0.1",
@@ -77,7 +77,7 @@
     "testEnvironment": "node"
   }
 }
-=======
+
 {
   "name": "geolocalizacion-backend",
   "version": "0.0.1",
@@ -155,4 +155,3 @@
     "testEnvironment": "node"
   }
 }
->>>>>>> 8216b812f030dfcf5df9b90a83903aa62ef99797
