@@ -1,4 +1,4 @@
 export class LoginUserDto {
   email: string;
-  password_hash: string;
+  password: string; // 👈 también password en texto plano
 }
