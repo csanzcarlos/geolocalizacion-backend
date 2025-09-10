@@ -14,12 +14,10 @@ export class UsersService {
   ) {}
 
   async create(createUserDto: CreateUserDto) {
-    // ✅ CORRECCIÓN: Se usan los nombres de propiedad correctos del DTO ('email', 'password_hash')
     const { email, nombre, rol, password_hash } = createUserDto;
     const salt = await bcrypt.genSalt();
     const hashedPassword = await bcrypt.hash(password_hash, salt);
     
-    // ✅ CORRECCIÓN: Se usan los nombres de propiedad correctos de la Entidad
     const user = this.userRepository.create({
       email,
       nombre,
@@ -34,16 +32,15 @@ export class UsersService {
   }
 
   async login(loginUserDto: LoginUserDto) {
-    // ✅ CORRECCIÓN: Se usan los nombres de propiedad correctos del DTO
     const { email, password_hash } = loginUserDto;
     const user = await this.userRepository.findOneBy({ email });
 
-    // Se mantiene la verificación robusta
+    // ✅ ESTA ES LA CORRECCIÓN CLAVE:
+    // Se asegura de que el usuario exista Y tenga una contraseña antes de continuar.
     if (!user || !user.password_hash) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    // ✅ CORRECCIÓN: Se comparan las propiedades correctas
     const isPasswordMatching = await bcrypt.compare(password_hash, user.password_hash);
     
     if (!isPasswordMatching) {
@@ -56,7 +53,6 @@ export class UsersService {
   }
 
   async findAll() {
-    // ✅ CORRECCIÓN: Se seleccionan las columnas que sí existen en la Entidad
     return this.userRepository.find({
         select: ['id', 'nombre', 'email', 'rol'] 
     });
