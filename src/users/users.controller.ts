@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Post, Body } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
@@ -13,11 +13,14 @@ export class UsersController {
   }
 
   @Post('login')
-  async login(@Body() loginUserDto: LoginUserDto) {
-    const user = await this.usersService.login(loginUserDto);
-    if (!user) {
-      throw new UnauthorizedException('Credenciales incorrectas');
-    }
-    return user;
+  login(@Body() loginUserDto: LoginUserDto) {
+    return this.usersService.login(loginUserDto);
+  }
+
+  // ✅ NUEVO MÉTODO: Esta es la "puerta" que le faltaba a tu API.
+  // Se activa cuando el panel pide la lista de todos los usuarios.
+  @Get()
+  findAll() {
+    return this.usersService.findAll();
   }
 }
