@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Query } from '@nestjs/common';
 import { ClientsService } from './clients.service';
 import { CreateClientDto } from './dto/create-client.dto';
 import { AdjudicateClientDto } from './dto/adjudicate-client.dto';
@@ -16,12 +16,18 @@ export class ClientsController {
   adjudicate(@Param('id') id: string, @Body() adjudicateClientDto: AdjudicateClientDto) {
     return this.clientsService.adjudicate(id, adjudicateClientDto);
   }
-@Patch(':id/marcar-visitado')
-marcarVisitado(@Param('id') id: string) {
-  return this.clientsService.marcarVisitado(id);
-}
+
+  @Patch(':id/marcar-visitado')
+  marcarVisitado(@Param('id') id: string) {
+    return this.clientsService.marcarVisitado(id);
+  }
+
+  // ✅ ENDPOINT MODIFICADO PARA ACEPTAR EL FILTRO
   @Get()
-  findAll() {
-    return this.clientsService.findAll();
+  findAll(@Query('vendedorId') vendedorId?: string) {
+    // Ahora, el 'vendedorId' que llega en la URL se pasa al servicio.
+    // Si no llega ningún ID, 'vendedorId' será undefined y el servicio devolverá todo.
+    return this.clientsService.findAll(vendedorId);
   }
 }
+

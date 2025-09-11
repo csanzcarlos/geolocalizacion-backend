@@ -1,12 +1,11 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Between } from 'typeorm';
 import { Client } from './entities/client.entity';
 import { CreateClientDto } from './dto/create-client.dto';
 import { AdjudicateClientDto } from './dto/adjudicate-client.dto';
 import { User } from '../users/entities/user.entity';
 import { Visit } from '../visits/entities/visit.entity';
-import { Between } from 'typeorm';
 
 @Injectable()
 export class ClientsService {
@@ -65,15 +64,26 @@ export class ClientsService {
     if (!cliente) {
       throw new NotFoundException('Cliente no encontrado');
     }
-    // No usamos un campo 'visitado' en la entidad,
-    // pero podemos devolver un mensaje de éxito.
-    // La lógica de la fecha se manejará en el frontend.
     return { success: true, message: 'Visita registrada' };
   }
 
-  async findAll() {
-    const clientes = await this.clientRepository.find({ relations: ['vendedor'] });
+  // ✅ FUNCIÓN 'findAll' FUSIONADA
+  async findAll(vendedorId?: string) {
+    // 1. Define las condiciones de la consulta.
+    const queryOptions = {
+      relations: ['vendedor'],
+      where: {},
+    };
 
+    // 2. Si se proporciona un vendedorId, lo añade a la consulta.
+    if (vendedorId) {
+      queryOptions.where = { vendedor: { id: vendedorId } };
+    }
+
+    // 3. Ejecuta la consulta para obtener los clientes (filtrados o todos).
+    const clientes = await this.clientRepository.find(queryOptions);
+
+    // --- Lógica para determinar el estado 'visitado' (de tu versión) ---
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
     const mañana = new Date(hoy);
@@ -94,3 +104,4 @@ export class ClientsService {
     }));
   }
 }
+
