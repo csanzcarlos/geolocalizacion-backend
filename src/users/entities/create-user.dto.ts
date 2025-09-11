@@ -8,7 +8,6 @@ export class CreateUserDto {
   @IsEmail({}, { message: 'Debe proporcionar un correo electrónico válido.' })
   email: string;
 
-  // ✅ CORRECCIÓN: El campo se llama 'password' para que coincida con el servicio.
   @IsString()
   @MinLength(4, { message: 'La contraseña debe tener al menos 4 caracteres.' })
   password: string;
@@ -17,4 +16,3 @@ export class CreateUserDto {
   @IsNotEmpty()
   rol: string;
 }
-
