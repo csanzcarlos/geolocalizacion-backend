@@ -16,6 +16,7 @@ export class User {
   rol: string;
   @CreateDateColumn()
   fecha_creacion: Date;
+  
 @OneToOne(() => Geolocation, (geolocation) => geolocation.user)
   geolocation: Geolocation;
 }
