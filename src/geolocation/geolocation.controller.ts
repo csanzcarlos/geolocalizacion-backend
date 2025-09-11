@@ -6,6 +6,16 @@ import { CreateGeolocationDto } from './dto/create-geolocation.dto';
 export class GeolocationController {
   constructor(private readonly geolocationService: GeolocationService) {}
 
+  // ✅ AÑADE ESTE NUEVO MÉTODO
+  /**
+   * Endpoint para obtener las últimas ubicaciones de TODOS los vendedores.
+   * Se accede a través de: GET http://localhost:3000/geolocation
+   */
+  @Get()
+  findAll() {
+    return this.geolocationService.findAll();
+  }
+
   /**
    * Endpoint para que un vendedor actualice su ubicación.
    * Se accede a través de: PATCH http://localhost:3000/geolocation/ID_DEL_VENDEDOR
@@ -19,7 +29,7 @@ export class GeolocationController {
   }
 
   /**
-   * Endpoint para obtener la última ubicación de un vendedor.
+   * Endpoint para obtener la última ubicación de UN vendedor específico.
    * Se accede a través de: GET http://localhost:3000/geolocation/ID_DEL_VENDEDOR
    */
   @Get(':vendorId')
@@ -27,3 +37,4 @@ export class GeolocationController {
     return this.geolocationService.findOneByVendor(vendorId);
   }
 }
+
