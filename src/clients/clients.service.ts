@@ -67,15 +67,14 @@ export class ClientsService {
     return { success: true, message: 'Visita registrada' };
   }
 
-  // ✅ FUNCIÓN 'findAll' FUSIONADA
+  // ✅ FUNCIÓN 'findAll' FUSIONADA Y CORREGIDA
   async findAll(vendedorId?: string) {
-    // 1. Define las condiciones de la consulta.
-    const queryOptions = {
+    // 1. Define las opciones de la consulta.
+    const queryOptions: any = {
       relations: ['vendedor'],
-      where: {},
     };
 
-    // 2. Si se proporciona un vendedorId, lo añade a la consulta.
+    // 2. Si se proporciona un vendedorId, lo añade como condición a la consulta.
     if (vendedorId) {
       queryOptions.where = { vendedor: { id: vendedorId } };
     }
