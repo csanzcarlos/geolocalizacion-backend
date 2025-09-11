@@ -56,4 +56,15 @@ export class GeolocationService {
     }
     return location;
   }
+
+  // ✅ NUEVA FUNCIÓN AÑADIDA
+  /**
+   * Devuelve todas las últimas ubicaciones guardadas de los vendedores.
+   */
+  async findAll(): Promise<Geolocation[]> {
+    return this.geolocationRepository.find({
+      relations: ['user'], // Incluye los datos del usuario (vendedor) en la respuesta
+    });
+  }
 }
+
