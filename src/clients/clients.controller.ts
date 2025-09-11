@@ -24,10 +24,8 @@ export class ClientsController {
 
   // ✅ ENDPOINT MODIFICADO PARA ACEPTAR EL FILTRO
   @Get()
-  findAll(@Query('vendedorId') vendedorId?: string) {
-    // Ahora, el 'vendedorId' que llega en la URL se pasa al servicio.
-    // Si no llega ningún ID, 'vendedorId' será undefined y el servicio devolverá todo.
-    return this.clientsService.findAll(vendedorId);
-  }
+findAll(@Query('vendedorId') vendedorId?: string) {
+  return this.clientsService.findAll(vendedorId);
+}
 }
 

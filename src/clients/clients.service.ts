@@ -72,6 +72,7 @@ export class ClientsService {
     // 1. Define las opciones de la consulta.
     const queryOptions: any = {
       relations: ['vendedor'],
+      where: {},
     };
 
     // 2. Si se proporciona un vendedorId, lo añade como condición a la consulta.
