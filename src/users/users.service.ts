@@ -1,9 +1,14 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { 
+  Injectable, 
+  BadRequestException, 
+  ConflictException, 
+  UnauthorizedException 
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
-import { User } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -13,48 +18,67 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  async create(createUserDto: CreateUserDto) {
-    const { email, nombre, rol, password_hash } = createUserDto;
-    const salt = await bcrypt.genSalt();
-    const hashedPassword = await bcrypt.hash(password_hash, salt);
+  /**
+   * ✅ LÓGICA DE CREACIÓN CORREGIDA
+   * Crea un nuevo usuario, asegurándose de encriptar la contraseña.
+   */
+  async create(createUserDto: CreateUserDto): Promise<Omit<User, 'password_hash'>> {
+    // 1. Se usa `createUserDto.password` (el nombre correcto que debe venir del DTO).
+    if (!createUserDto.password || createUserDto.password.trim() === '') {
+      throw new BadRequestException('El campo de contraseña no puede estar vacío.');
+    }
     
-    const user = this.userRepository.create({
-      email,
-      nombre,
-      rol,
+    // 2. Se verifica si el email ya existe para evitar duplicados.
+    const existingUser = await this.userRepository.findOneBy({ email: createUserDto.email });
+    if (existingUser) {
+        throw new ConflictException('El correo electrónico ya está en uso.');
+    }
+
+    const saltRounds = 10;
+    // 3. Se encripta la contraseña en texto plano recibida en `createUserDto.password`.
+    const hashedPassword = await bcrypt.hash(createUserDto.password, saltRounds);
+
+    // 4. Se crea la nueva entidad de usuario, guardando el hash en la columna `password_hash`.
+    const newUser = this.userRepository.create({
+      ...createUserDto,
       password_hash: hashedPassword,
     });
+
+    const savedUser = await this.userRepository.save(newUser);
     
-    await this.userRepository.save(user);
-    // No devolver la contraseña en la respuesta
-    const { password_hash: _, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    // 5. Se devuelve el usuario sin el hash de la contraseña por seguridad.
+    const { password_hash, ...result } = savedUser;
+    return result;
   }
 
-  async login(loginUserDto: LoginUserDto) {
-    const { email, password_hash } = loginUserDto;
+  /**
+   * Autentica a un usuario y devuelve sus datos si las credenciales son válidas.
+   */
+  async login(loginUserDto: LoginUserDto): Promise<Omit<User, 'password_hash'>> {
+    const { email, password } = loginUserDto;
     const user = await this.userRepository.findOneBy({ email });
 
-    // Verificación robusta para prevenir errores si el usuario no existe o no tiene contraseña
-    if (!user || !user.password_hash) {
+    if (!user) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    const isPasswordMatching = await bcrypt.compare(password_hash, user.password_hash);
+    // Compara la contraseña enviada (`password`) con el hash guardado (`user.password_hash`).
+    const isPasswordMatching = await bcrypt.compare(password, user.password_hash);
     
     if (!isPasswordMatching) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    // No devolver la contraseña en la respuesta
-    const { password_hash: _, ...userWithoutPassword } = user;
+    const { password_hash, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
 
-  async findAll() {
-    // Busca todos los usuarios y selecciona solo los campos no sensibles
+  /**
+   * Devuelve una lista de todos los usuarios sin datos sensibles.
+   */
+  async findAll(): Promise<Omit<User, 'password_hash'>[]> {
     return this.userRepository.find({
-        select: ['id', 'nombre', 'email', 'rol'] 
+        select: ['id', 'nombre', 'email', 'rol', 'fecha_creacion'] 
     });
   }
 }
