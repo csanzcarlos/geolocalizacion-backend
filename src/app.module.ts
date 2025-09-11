@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { ClientsModule } from './clients/clients.module';
 import { VisitsModule } from './visits/visits.module';
 import { EmpresaModule } from './empresa/empresa.module';
+import { GeolocationModule } from './geolocation/geolocation.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { EmpresaModule } from './empresa/empresa.module';
     ClientsModule,
     VisitsModule,
     EmpresaModule,
+       GeolocationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

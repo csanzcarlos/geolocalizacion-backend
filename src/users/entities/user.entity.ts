@@ -1,4 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import { Geolocation } from '../../geolocation/entities/geolocation.entity';
+import { OneToOne } from 'typeorm';
 
 @Entity({ name: 'usuarios' })
 export class User {
@@ -14,4 +16,7 @@ export class User {
   rol: string;
   @CreateDateColumn()
   fecha_creacion: Date;
+@OneToOne(() => Geolocation, (geolocation) => geolocation.user)
+  geolocation: Geolocation;
 }
+  
