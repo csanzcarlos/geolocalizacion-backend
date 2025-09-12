@@ -28,4 +28,8 @@ export class CreateVisitDto {
   @IsOptional()
   @IsString()
   comentarios: string;
+
+   @IsOptional()
+  @IsString()
+  foto_url: string;
 }

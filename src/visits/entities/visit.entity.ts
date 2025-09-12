@@ -32,4 +32,7 @@ export class Visit {
 
   @Column({ type: 'text', nullable: true })
   comentarios: string;
+   // ✅ Nueva columna para la URL de la foto
+  @Column({ name: 'foto_url', type: 'varchar', length: 255, nullable: true })
+  foto_url: string;
 }

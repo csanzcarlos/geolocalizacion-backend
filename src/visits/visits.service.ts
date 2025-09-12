@@ -18,7 +18,7 @@ export class VisitsService {
     ) {}
 
     async create(createVisitDto: CreateVisitDto) {
-        const { id_cliente, id_vendedor, ...visitData } = createVisitDto;
+        const { id_cliente, id_vendedor, foto_url, ...visitData } = createVisitDto;
         const cliente = await this.clientRepository.findOneBy({ id: id_cliente });
         const vendedor = await this.userRepository.findOneBy({ id: id_vendedor });
 
@@ -29,6 +29,7 @@ export class VisitsService {
             ...visitData,
             cliente,
             vendedor,
+            foto_url, // ✅ Se añade la foto a la nueva visita
         });
         return this.visitRepository.save(newVisit);
     }
@@ -84,5 +85,7 @@ export class VisitsService {
         relations: ['cliente', 'vendedor'],
         order: { fecha_visita: 'DESC' },
     });
-} 
+}
+
+
 }
