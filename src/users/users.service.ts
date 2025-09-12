@@ -2,14 +2,16 @@ import {
   Injectable, 
   BadRequestException, 
   ConflictException, 
-  UnauthorizedException 
+  UnauthorizedException,
+  NotFoundException
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Not } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import * as bcrypt from 'bcrypt';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -42,6 +44,43 @@ export class UsersService {
     return result;
   }
 
+  async findAll() {
+    return this.userRepository.find({
+      where: { status: Not('archivado') },
+      select: ['id', 'nombre', 'email', 'rol', 'status', 'fecha_creacion'],
+    });
+  }
+
+  async update(id: string, updateUserDto: UpdateUserDto) {
+    const user = await this.userRepository.preload({
+      id: id,
+      ...updateUserDto,
+    });
+
+    if (!user) {
+      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+    }
+
+    if (updateUserDto.password) {
+      const saltRounds = 10;
+      user.password_hash = await bcrypt.hash(updateUserDto.password, saltRounds);
+    }
+
+    await this.userRepository.save(user);
+    const { password_hash, ...result } = user;
+    return result;
+  }
+
+  async remove(id: string) {
+    const user = await this.userRepository.findOneBy({ id });
+    if (!user) {
+      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+    }
+    user.status = 'archivado';
+    await this.userRepository.save(user);
+    return { message: `Usuario ${user.nombre} archivado exitosamente.` };
+  }
+
   /**
    * ✅ LÓGICA DE LOGIN CORREGIDA Y MÁS ROBUSTA
    */
@@ -50,7 +89,7 @@ export class UsersService {
     const user = await this.userRepository.findOneBy({ email });
 
     // 1. Verificación robusta: Si el usuario no existe O si existe pero no tiene un hash de contraseña,
-    //    se lanza la misma excepción de "credenciales inválidas".
+    //    se lanza la misma excepción de \"credenciales inválidas\".
     if (!user || !user.password_hash) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
@@ -64,12 +103,6 @@ export class UsersService {
 
     const { password_hash, ...userWithoutPassword } = user;
     return userWithoutPassword;
-  }
-
-  async findAll(): Promise<Omit<User, 'password_hash'>[]> {
-    return this.userRepository.find({
-        select: ['id', 'nombre', 'email', 'rol', 'fecha_creacion'] 
-    });
   }
 }
 

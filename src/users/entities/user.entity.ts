@@ -14,10 +14,14 @@ export class User {
   nombre: string;
   @Column()
   rol: string;
+
+  @Column({ default: 'activo' })
+  status: string;
+
   @CreateDateColumn()
   fecha_creacion: Date;
   
 @OneToOne(() => Geolocation, (geolocation) => geolocation.user)
   geolocation: Geolocation;
 }
-  
+
