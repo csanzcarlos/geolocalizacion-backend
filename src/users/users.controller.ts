@@ -29,6 +29,12 @@ export class UsersController {
     return this.usersService.update(id, updateUserDto);
   }
 
+   @Get('archivados/all')
+  findAllArchived() {
+    return this.usersService.findAllArchived();
+  }
+
+
   // ✅ NUEVO MÉTODO PARA ARCHIVAR
   // Esta es la "puerta" que le faltaba a tu API.
   // Se activa cuando el frontend pide archivar un usuario.

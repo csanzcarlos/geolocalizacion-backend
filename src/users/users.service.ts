@@ -81,6 +81,13 @@ export class UsersService {
     return { message: `Usuario ${user.nombre} archivado exitosamente.` };
   }
 
+  async findAllArchived() {
+    return this.userRepository.find({
+      where: { status: 'archivado' },
+      select: ['id', 'nombre', 'email', 'rol', 'status', 'fecha_creacion'],
+    });
+  }
+  
   /**
    * ✅ LÓGICA DE LOGIN CORREGIDA Y MÁS ROBUSTA
    */
