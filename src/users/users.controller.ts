@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common'; // ✅ IMPORTA MÁS MÓDULOS
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto'; // ✅ IMPORTA EL DTO DE ACTUALIZACIÓN
 
 @Controller('users')
 export class UsersController {
@@ -17,11 +18,23 @@ export class UsersController {
     return this.usersService.login(loginUserDto);
   }
 
-  // ✅ NUEVO MÉTODO: Esta es la "puerta" que le faltaba a tu API.
-  // Se activa cuando el panel pide la lista de todos los usuarios.
   @Get()
   findAll() {
     return this.usersService.findAll();
   }
-}
 
+  // ✅ NUEVO MÉTODO PARA ACTUALIZAR (LO NECESITARÁS)
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    return this.usersService.update(id, updateUserDto);
+  }
+
+  // ✅ NUEVO MÉTODO PARA ARCHIVAR
+  // Esta es la "puerta" que le faltaba a tu API.
+  // Se activa cuando el frontend pide archivar un usuario.
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    // Llama a la función 'remove' del servicio, que en realidad archiva.
+    return this.usersService.remove(id);
+  }
+}
