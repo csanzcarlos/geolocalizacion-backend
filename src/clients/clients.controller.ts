@@ -21,6 +21,10 @@ export class ClientsController {
   marcarVisitado(@Param('id') id: string) {
     return this.clientsService.marcarVisitado(id);
   }
+  @Patch(':id/reasignar')
+reassign(@Param('id') id: string, @Body() adjudicateClientDto: AdjudicateClientDto) {
+  return this.clientsService.reassign(id, adjudicateClientDto);
+}
 
   // ✅ ENDPOINT MODIFICADO PARA ACEPTAR EL FILTRO
   @Get()

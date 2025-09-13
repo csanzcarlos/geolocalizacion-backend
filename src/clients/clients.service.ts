@@ -67,6 +67,24 @@ export class ClientsService {
     return { success: true, message: 'Visita registrada' };
   }
 
+
+  async reassign(id: string, adjudicateClientDto: AdjudicateClientDto) {
+  const { vendedorId } = adjudicateClientDto;
+
+  const cliente = await this.clientRepository.findOneBy({ id });
+  if (!cliente) {
+    throw new NotFoundException('Cliente no encontrado');
+  }
+
+  const vendedor = await this.userRepository.findOneBy({ id: vendedorId });
+  if (!vendedor) {
+    throw new NotFoundException(`Vendedor con ID ${vendedorId} no encontrado`);
+  }
+
+  cliente.vendedor = vendedor;
+  return this.clientRepository.save(cliente);
+}
+
   // ✅ FUNCIÓN 'findAll' FUSIONADA Y CORREGIDA
   async findAll(vendedorId?: string) {
     // 1. Define las opciones de la consulta.

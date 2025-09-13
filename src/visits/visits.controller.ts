@@ -32,6 +32,12 @@ export class VisitsController {
   findAllToday() {
     return this.visitsService.findAllToday();
   }
+
+  @Get('cliente/:clientId')
+findAllByClient(@Param('clientId') clientId: string) {
+  return this.visitsService.findAllByClient(clientId);
+}
+  
   // ✅ Este es el endpoint para el historial de visitas con filtro de fecha
   @Get('history')
   async findAllByDateRange(

@@ -33,6 +33,17 @@ export class VisitsService {
         });
         return this.visitRepository.save(newVisit);
     }
+    async findAllByClient(clientId: string): Promise<Visit[]> {
+  return this.visitRepository.find({
+    where: {
+      cliente: { id: clientId },
+    },
+    order: {
+      fecha_visita: 'DESC', // Ordena las visitas de la más reciente a la más antigua
+    },
+    relations: ['vendedor'], // Incluye la información del vendedor que hizo la visita
+  });
+}
 
     // ✅ Método para buscar todas las visitas de un cliente
     async findAllByClientId(clientId: string) {
