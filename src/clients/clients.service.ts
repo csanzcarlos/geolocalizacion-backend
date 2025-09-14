@@ -4,6 +4,7 @@ import { Repository, Between } from 'typeorm';
 import { Client } from './entities/client.entity';
 import { CreateClientDto } from './dto/create-client.dto';
 import { AdjudicateClientDto } from './dto/adjudicate-client.dto';
+import { UpdateClientDto } from './dto/update-client.dto'; // ✅ NUEVO: Importa el DTO de actualización
 import { User } from '../users/entities/user.entity';
 import { Visit } from '../visits/entities/visit.entity';
 
@@ -32,6 +33,30 @@ export class ClientsService {
     });
 
     return this.clientRepository.save(newClient);
+  }
+
+  // ✅ NUEVO: Método para actualizar un cliente
+  async update(id: string, updateClientDto: UpdateClientDto) {
+    const client = await this.clientRepository.preload({
+      id,
+      ...updateClientDto,
+    });
+
+    if (!client) {
+      throw new NotFoundException('Cliente no encontrado');
+    }
+
+    return this.clientRepository.save(client);
+  }
+
+  // ✅ NUEVO: Método para archivar un cliente (soft delete)
+  async archive(id: string) {
+    const client = await this.clientRepository.findOneBy({ id });
+    if (!client) {
+      throw new NotFoundException('Cliente no encontrado');
+    }
+    client.archivado = true;
+    return this.clientRepository.save(client);
   }
 
   async adjudicate(id: string, adjudicateClientDto: AdjudicateClientDto) {
@@ -67,28 +92,27 @@ export class ClientsService {
     return { success: true, message: 'Visita registrada' };
   }
 
-
   async reassign(id: string, adjudicateClientDto: AdjudicateClientDto) {
-  const { vendedorId } = adjudicateClientDto;
+    const { vendedorId } = adjudicateClientDto;
 
-  const cliente = await this.clientRepository.findOneBy({ id });
-  if (!cliente) {
-    throw new NotFoundException('Cliente no encontrado');
+    const cliente = await this.clientRepository.findOneBy({ id });
+    if (!cliente) {
+      throw new NotFoundException('Cliente no encontrado');
+    }
+
+    const vendedor = await this.userRepository.findOneBy({ id: vendedorId });
+    if (!vendedor) {
+      throw new NotFoundException(`Vendedor con ID ${vendedorId} no encontrado`);
+    }
+
+    cliente.vendedor = vendedor;
+    return this.clientRepository.save(cliente);
   }
 
-  const vendedor = await this.userRepository.findOneBy({ id: vendedorId });
-  if (!vendedor) {
-    throw new NotFoundException(`Vendedor con ID ${vendedorId} no encontrado`);
-  }
-
-  cliente.vendedor = vendedor;
-  return this.clientRepository.save(cliente);
-}
-
- async findOne(id: string) {
+  async findOne(id: string) {
     const client = await this.clientRepository.findOne({
       where: { id },
-      relations: ['vendedor'], // Incluye los datos del vendedor asociado
+      relations: ['vendedor'],
     });
 
     if (!client) {
@@ -97,23 +121,19 @@ export class ClientsService {
     return client;
   }
 
-  // ✅ FUNCIÓN 'findAll' FUSIONADA Y CORREGIDA
-  async findAll(vendedorId?: string) {
-    // 1. Define las opciones de la consulta.
+  // ✅ FUNCIÓN 'findAll' MODIFICADA
+  async findAll(vendedorId?: string, includeArchived: boolean = false) {
     const queryOptions: any = {
       relations: ['vendedor'],
-      where: {},
+      where: { archivado: includeArchived }, // ✅ FILTRAR CLIENTES NO ARCHIVADOS POR DEFECTO
     };
 
-    // 2. Si se proporciona un vendedorId, lo añade como condición a la consulta.
     if (vendedorId) {
-      queryOptions.where = { vendedor: { id: vendedorId } };
+      queryOptions.where.vendedor = { id: vendedorId };
     }
 
-    // 3. Ejecuta la consulta para obtener los clientes (filtrados o todos).
     const clientes = await this.clientRepository.find(queryOptions);
 
-    // --- Lógica para determinar el estado 'visitado' (de tu versión) ---
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
     const mañana = new Date(hoy);
@@ -134,4 +154,3 @@ export class ClientsService {
     }));
   }
 }
-

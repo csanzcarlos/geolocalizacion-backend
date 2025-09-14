@@ -24,6 +24,10 @@ export class Client {
   @Column('decimal', { precision: 10, scale: 7 })
   longitud: number;
 
+  // ✅ NUEVO: Campo para el archivado (soft delete)
+  @Column({ default: false })
+  archivado: boolean;
+
   @ManyToOne(() => User)
   @JoinColumn({ name: 'vendedor_id' })
   vendedor: User;

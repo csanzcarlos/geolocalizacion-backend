@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Query, Delete } from '@nestjs/common';
 import { ClientsService } from './clients.service';
 import { CreateClientDto } from './dto/create-client.dto';
 import { AdjudicateClientDto } from './dto/adjudicate-client.dto';
+import { UpdateClientDto } from './dto/update-client.dto'; // ✅ NUEVO: Importa el DTO de actualización
 
 @Controller('clients')
 export class ClientsController {
@@ -27,19 +28,25 @@ export class ClientsController {
     return this.clientsService.reassign(id, adjudicateClientDto);
   }
 
-  // ✅ ENDPOINT PARA OBTENER TODOS LOS CLIENTES (con filtro opcional)
-  // Responde a: /clients y /clients?vendedorId=...
+  // ✅ NUEVO ENDPOINT: para actualizar los datos de un cliente
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() updateClientDto: UpdateClientDto) {
+    return this.clientsService.update(id, updateClientDto);
+  }
+
+  // ✅ NUEVO ENDPOINT: para archivar un cliente (soft delete)
+  @Delete(':id')
+  archive(@Param('id') id: string) {
+    return this.clientsService.archive(id);
+  }
+
   @Get()
   findAll(@Query('vendedorId') vendedorId?: string) {
     return this.clientsService.findAll(vendedorId);
   }
 
-  // ✅ RUTA AÑADIDA: Esta era la que faltaba.
-  // Responde a la petición del modal para obtener los detalles de UN solo cliente.
-  // URL: /clients/ID_DEL_CLIENTE
   @Get(':id')
   findOne(@Param('id') id: string) {
-    // Asumiendo que tienes un método findOne en tu clients.service.ts
     return this.clientsService.findOne(id);
   }
 }
