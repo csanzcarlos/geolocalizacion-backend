@@ -21,15 +21,25 @@ export class ClientsController {
   marcarVisitado(@Param('id') id: string) {
     return this.clientsService.marcarVisitado(id);
   }
+
   @Patch(':id/reasignar')
-reassign(@Param('id') id: string, @Body() adjudicateClientDto: AdjudicateClientDto) {
-  return this.clientsService.reassign(id, adjudicateClientDto);
-}
+  reassign(@Param('id') id: string, @Body() adjudicateClientDto: AdjudicateClientDto) {
+    return this.clientsService.reassign(id, adjudicateClientDto);
+  }
 
-  // ✅ ENDPOINT MODIFICADO PARA ACEPTAR EL FILTRO
+  // ✅ ENDPOINT PARA OBTENER TODOS LOS CLIENTES (con filtro opcional)
+  // Responde a: /clients y /clients?vendedorId=...
   @Get()
-findAll(@Query('vendedorId') vendedorId?: string) {
-  return this.clientsService.findAll(vendedorId);
-}
-}
+  findAll(@Query('vendedorId') vendedorId?: string) {
+    return this.clientsService.findAll(vendedorId);
+  }
 
+  // ✅ RUTA AÑADIDA: Esta era la que faltaba.
+  // Responde a la petición del modal para obtener los detalles de UN solo cliente.
+  // URL: /clients/ID_DEL_CLIENTE
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    // Asumiendo que tienes un método findOne en tu clients.service.ts
+    return this.clientsService.findOne(id);
+  }
+}
