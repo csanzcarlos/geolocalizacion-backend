@@ -1,14 +1,34 @@
-import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { TasksService } from './tasks.service';
-import { TasksController } from './tasks.controller';
-// ✅ CORRECCIÓN: Se actualizó la ruta de importación para que no use la carpeta 'entities'
-import { Task } from './task.entity';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable } from 'typeorm';
 import { Client } from '../clients/entities/client.entity';
 
-@Module({
-  imports: [TypeOrmModule.forFeature([Task, Client])], // Importamos Task y Client
-  controllers: [TasksController],
-  providers: [TasksService],
-})
-export class TasksModule {}
+@Entity({ name: 'tasks' })
+export class Task {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  name: string;
+
+  @Column()
+  visitCount: number;
+
+  @Column()
+  frequency: 'monthly' | 'weekly';
+
+  @Column()
+  applyTo: 'all' | 'specific';
+
+  @ManyToMany(() => Client)
+  @JoinTable({
+    name: 'task_clients_client', // nombre de la tabla intermedia
+    joinColumn: {
+      name: 'taskId',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'clientId',
+      referencedColumnName: 'id',
+    },
+  })
+  clients: Client[];
+}
