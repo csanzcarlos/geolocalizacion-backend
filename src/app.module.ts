@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config'; // <-- 1. Importa el ConfigModule
+import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -8,21 +8,17 @@ import { ClientsModule } from './clients/clients.module';
 import { VisitsModule } from './visits/visits.module';
 import { EmpresaModule } from './empresa/empresa.module';
 import { GeolocationModule } from './geolocation/geolocation.module';
-
-
-
+import { TasksModule } from './tasks/tasks.module'; // <-- 1. Importa el TasksModule aquí
 
 @Module({
   imports: [
-    // 2. Añade ConfigModule.forRoot() al principio de los imports.
-    // Esto cargará las variables de entorno (como las de Render) en tu aplicación.
     ConfigModule.forRoot({
-      isGlobal: true, // Hace que las variables estén disponibles en toda la app
+      isGlobal: true, 
     }),
     
     TypeOrmModule.forRoot({
       type: 'postgres',
-      url: process.env.DATABASE_URL, // ✅ Ahora esta línea funcionará
+      url: process.env.DATABASE_URL,
       ssl: process.env.NODE_ENV === 'production' 
         ? { rejectUnauthorized: false }
         : false,
@@ -33,10 +29,10 @@ import { GeolocationModule } from './geolocation/geolocation.module';
     ClientsModule,
     VisitsModule,
     EmpresaModule,
-       GeolocationModule,
+    GeolocationModule,
+    TasksModule, // <-- 2. Añade TasksModule a la lista de imports
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
-
