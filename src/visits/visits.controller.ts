@@ -13,32 +13,34 @@ export class VisitsController {
     return this.visitsService.create(createVisitDto);
   }
 
-  // ✅ Endpoint unificado para filtrar por cliente o vendedor
+  // ✅ Endpoint unificado y corregido. Esta es la ÚNICA ruta GET principal.
   @Get()
   findAll(
     @Query('clienteId') clienteId?: string,
     @Query('vendedorId') vendedorId?: string,
   ) {
+    // Si la URL es /visits?clienteId=123, se ejecuta esto:
     if (clienteId) {
+      // Asumimos que tu servicio tiene un método llamado 'findAllByClientId'
       return this.visitsService.findAllByClientId(clienteId);
     }
+    // Si la URL es /visits?vendedorId=456, se ejecuta esto:
     if (vendedorId) {
+      // Asumimos que tu servicio tiene un método llamado 'findAllByVendedorId'
       return this.visitsService.findAllByVendedorId(vendedorId);
     }
-    // Si no se proporciona ningún filtro, puedes devolver todas las visitas
+    // Si la URL es solo /visits, se ejecuta esto:
     return this.visitsService.findAll();
   }
- @Get('today')
+
+  @Get('today')
   findAllToday() {
     return this.visitsService.findAllToday();
   }
-
-  @Get('cliente/:clientId')
-findAllByClient(@Param('clientId') clientId: string) {
-  return this.visitsService.findAllByClient(clientId);
-}
   
-  // ✅ Este es el endpoint para el historial de visitas con filtro de fecha
+  // ❌ SE ELIMINÓ LA RUTA DUPLICADA (@Get('cliente/:clientId'))
+  //    La lógica ya está cubierta en el @Get() principal de arriba.
+
   @Get('history')
   async findAllByDateRange(
     @Query('fromDate') fromDate: string,
