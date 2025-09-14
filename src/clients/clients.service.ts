@@ -85,6 +85,18 @@ export class ClientsService {
   return this.clientRepository.save(cliente);
 }
 
+ async findOne(id: string) {
+    const client = await this.clientRepository.findOne({
+      where: { id },
+      relations: ['vendedor'], // Incluye los datos del vendedor asociado
+    });
+
+    if (!client) {
+      throw new NotFoundException(`Cliente con ID ${id} no encontrado`);
+    }
+    return client;
+  }
+
   // ✅ FUNCIÓN 'findAll' FUSIONADA Y CORREGIDA
   async findAll(vendedorId?: string) {
     // 1. Define las opciones de la consulta.
