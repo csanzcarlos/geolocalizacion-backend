@@ -20,8 +20,18 @@ export class User {
 
   @CreateDateColumn()
   fecha_creacion: Date;
+
   
+  // ...otras columnas como @Column() nombre: string;
+
+@Column({ type: 'varchar', nullable: true, select: false })
+resetPasswordToken: string;
+
+@Column({ type: 'timestamp', nullable: true, select: false })
+resetPasswordExpires: Date;
+
 @OneToOne(() => Geolocation, (geolocation) => geolocation.user)
   geolocation: Geolocation;
 }
+
 

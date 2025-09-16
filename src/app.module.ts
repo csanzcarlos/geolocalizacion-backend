@@ -8,7 +8,8 @@ import { ClientsModule } from './clients/clients.module';
 import { VisitsModule } from './visits/visits.module';
 import { EmpresaModule } from './empresa/empresa.module';
 import { GeolocationModule } from './geolocation/geolocation.module';
-import { TasksModule } from './tasks/tasks.module'; // <-- 1. Importa el TasksModule aquí
+import { TasksModule } from './tasks/tasks.module';
+import { WhatsappModule } from './whatsapp/whatsapp.module'; // ✅ 1. AÑADIR ESTA LÍNEA
 
 @Module({
   imports: [
@@ -30,7 +31,8 @@ import { TasksModule } from './tasks/tasks.module'; // <-- 1. Importa el TasksMo
     VisitsModule,
     EmpresaModule,
     GeolocationModule,
-    TasksModule, // <-- 2. Añade TasksModule a la lista de imports
+    TasksModule,
+    WhatsappModule, // ✅ 2. AÑADIR ESTA LÍNEA
   ],
   controllers: [AppController],
   providers: [AppService],
