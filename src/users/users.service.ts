@@ -71,6 +71,20 @@ export class UsersService {
     return result;
   }
 
+  async findOne(id: string) {
+    // Busca al usuario por su ID
+    const user = await this.userRepository.findOneBy({ id });
+
+    // Si no lo encuentra, lanza un error 404
+    if (!user) {
+      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+    }
+
+    // Quita el password_hash antes de devolver el resultado
+    const { password_hash, ...result } = user;
+    return result;
+  }
+
   async remove(id: string) {
     const user = await this.userRepository.findOneBy({ id });
     if (!user) {
@@ -86,6 +100,8 @@ export class UsersService {
       where: { status: 'archivado' },
       select: ['id', 'nombre', 'email', 'rol', 'status', 'fecha_creacion'],
     });
+  
+  
   }
   
   /**

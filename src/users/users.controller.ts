@@ -34,6 +34,10 @@ export class UsersController {
     return this.usersService.findAllArchived();
   }
 
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.usersService.findOne(id);
+  }
 
   // ✅ NUEVO MÉTODO PARA ARCHIVAR
   // Esta es la "puerta" que le faltaba a tu API.
