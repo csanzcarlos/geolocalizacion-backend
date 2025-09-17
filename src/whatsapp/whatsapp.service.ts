@@ -1,4 +1,4 @@
-// ✅ REEMPLAZA EL CONTENIDO DE TU ARCHIVO CON ESTE CÓDIGO
+// ✅ REEMPLAZA EL CONTENIDO DE TU ARCHIVO CON ESTE CÓDIGO CORREGIDO
 
 import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -13,7 +13,6 @@ import * as fs from 'fs';
 @Injectable()
 export class WhatsappService implements OnModuleInit {
   private clients = new Map<string, Client>();
-  // --> NUEVO: Flag para evitar que se generen múltiples QRs a la vez
   private isGeneratingQR = false;
 
   constructor(
@@ -35,14 +34,14 @@ export class WhatsappService implements OnModuleInit {
   }
 
   startNewSession(): Promise<string> {
-    // --> NUEVO: Si ya se está generando un QR, rechazamos la nueva petición
     if (this.isGeneratingQR) {
         console.log('Ya hay un proceso de generación de QR en curso.');
         return Promise.reject(new Error('Ya se está generando un código QR. Por favor, espera.'));
     }
     
-    this.isGeneratingQR = true; // Bloqueamos nuevas peticiones
+    this.isGeneratingQR = true;
 
+    // --> CAMBIO: Se elimina el .finally() y la lógica se mueve adentro de la promesa
     return new Promise((resolve, reject) => {
       const tempClientId = `session-${Date.now()}`;
       console.log(`Creando cliente temporal con ID: ${tempClientId}`);
@@ -58,19 +57,20 @@ export class WhatsappService implements OnModuleInit {
       const timeout = setTimeout(() => {
         console.error('Timeout: El QR no se generó en 30 segundos.');
         client.destroy();
-        this.isGeneratingQR = false;
+        this.isGeneratingQR = false; // --> Se añade aquí
         reject('Timeout al generar el QR. Inténtalo de nuevo.');
-      }, 30000); // Timeout de 30 segundos
+      }, 30000);
 
       client.on('qr', (qr) => {
-        clearTimeout(timeout); // Cancelamos el timeout porque el QR llegó
+        clearTimeout(timeout);
         console.log('QR RECIBIDO, generando Data URL...');
         qrcode.toDataURL(qr, (err, url) => {
           if (err) {
             console.error('Error al convertir QR a Data URL:', err);
-            this.isGeneratingQR = false;
+            this.isGeneratingQR = false; // --> Se añade aquí
             reject('Error al generar el Data URL del QR');
           }
+          this.isGeneratingQR = false; // --> Se añade aquí
           resolve(url);
         });
       });
@@ -78,29 +78,23 @@ export class WhatsappService implements OnModuleInit {
       client.on('ready', () => {
         console.log(`Cliente temporal ${tempClientId} conectado. Se autodestruirá.`);
         clearTimeout(timeout);
-        client.destroy(); // Destruimos el cliente una vez conectado
-        this.isGeneratingQR = false;
-        // Aquí deberías tener un webhook o socket para notificar al frontend que se escaneó
-        // y ahora se debe asociar a un usuario.
+        client.destroy();
+        this.isGeneratingQR = false; // --> Se añade aquí
       });
       
       client.on('auth_failure', (msg) => {
         console.error('Fallo de autenticación temporal:', msg);
         clearTimeout(timeout);
-        this.isGeneratingQR = false;
+        this.isGeneratingQR = false; // --> Se añade aquí
         reject('Fallo de autenticación.');
       });
 
       client.initialize().catch(err => {
         clearTimeout(timeout);
         console.error(`Error al inicializar cliente temporal:`, err);
-        this.isGeneratingQR = false;
+        this.isGeneratingQR = false; // --> Se añade aquí
         reject(`Error al inicializar cliente: ${err.message}`);
       });
-
-    }).finally(() => {
-        // --> NUEVO: Nos aseguramos de desbloquear el flag al finalizar
-        this.isGeneratingQR = false;
     });
   }
 
@@ -125,19 +119,12 @@ export class WhatsappService implements OnModuleInit {
     client.on('disconnected', async (reason) => {
         console.log(`Usuario ${userId} desconectado por: ${reason}. Eliminando sesión.`);
         this.clients.delete(userId);
-        // Opcional: podrías intentar reconectar aquí o limpiar la carpeta de sesión
-        const sessionPath = `./.wwebjs_auth/session-${userId}`;
-        if (fs.existsSync(sessionPath)) {
-            // fs.rmSync(sessionPath, { recursive: true, force: true });
-        }
     });
 
     client.initialize().catch(error => {
         console.error(`No se pudo inicializar la sesión para ${userId}:`, error.message);
     });
   }
-  
-  // --- El resto de tus funciones se mantienen igual ---
   
   async getConversations(sellerId: string): Promise<any[]> {
     const client = this.clients.get(sellerId);
@@ -205,11 +192,10 @@ export class WhatsappService implements OnModuleInit {
     
     const client = this.clients.get(conexion.usuario.id);
     if (client) {
-        await client.destroy(); // Usamos destroy para una limpieza más profunda
+        await client.destroy();
         this.clients.delete(conexion.usuario.id);
     }
     
-    // Limpiamos la carpeta de la sesión para evitar problemas al reconectar
     const sessionPath = `./.wwebjs_auth/session-${conexion.usuario.id}`;
     if (fs.existsSync(sessionPath)) {
         fs.rmSync(sessionPath, { recursive: true, force: true });
