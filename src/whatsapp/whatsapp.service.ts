@@ -5,14 +5,16 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { WhatsappFlota } from './entities/whatsapp.entity';
 import { User } from '../users/entities/user.entity';
-import { Client, LocalAuth } from 'whatsapp-web.js';
+import { Client, LocalAuth, MessageMedia } from 'whatsapp-web.js';
 import * as qrcode from 'qrcode';
 import { ConectarNumeroDto } from './dto/conectar-numero.dto';
+import * as fs from 'fs';
 
 @Injectable()
 export class WhatsappService implements OnModuleInit {
-  // Map para almacenar las sesiones activas de WhatsApp. La clave es el ID del usuario (vendedor).
   private clients = new Map<string, Client>();
+  // --> NUEVO: Flag para evitar que se generen múltiples QRs a la vez
+  private isGeneratingQR = false;
 
   constructor(
     @InjectRepository(WhatsappFlota)
@@ -21,8 +23,6 @@ export class WhatsappService implements OnModuleInit {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  // Este método se ejecuta cuando el módulo se inicia.
-  // Lo usaremos para reiniciar las sesiones que ya estaban conectadas.
   async onModuleInit() {
     console.log('Reiniciando sesiones de WhatsApp existentes...');
     const flota = await this.obtenerTodaLaFlota();
@@ -34,26 +34,41 @@ export class WhatsappService implements OnModuleInit {
     }
   }
 
-  /**
-   * Inicia una nueva sesión temporal para generar un QR y que un vendedor se conecte.
-   * @returns El código QR en formato Data URL (base64).
-   */
   startNewSession(): Promise<string> {
+    // --> NUEVO: Si ya se está generando un QR, rechazamos la nueva petición
+    if (this.isGeneratingQR) {
+        console.log('Ya hay un proceso de generación de QR en curso.');
+        return Promise.reject(new Error('Ya se está generando un código QR. Por favor, espera.'));
+    }
+    
+    this.isGeneratingQR = true; // Bloqueamos nuevas peticiones
+
     return new Promise((resolve, reject) => {
       const tempClientId = `session-${Date.now()}`;
+      console.log(`Creando cliente temporal con ID: ${tempClientId}`);
+      
       const client = new Client({
-        authStrategy: new LocalAuth({ clientId: tempClientId }),
+        authStrategy: new LocalAuth({ clientId: tempClientId, dataPath: './.wwebjs_auth' }),
         puppeteer: { 
             headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-extensions'] 
         },
       });
 
+      const timeout = setTimeout(() => {
+        console.error('Timeout: El QR no se generó en 30 segundos.');
+        client.destroy();
+        this.isGeneratingQR = false;
+        reject('Timeout al generar el QR. Inténtalo de nuevo.');
+      }, 30000); // Timeout de 30 segundos
+
       client.on('qr', (qr) => {
-        console.log('QR generado para nueva sesión.');
+        clearTimeout(timeout); // Cancelamos el timeout porque el QR llegó
+        console.log('QR RECIBIDO, generando Data URL...');
         qrcode.toDataURL(qr, (err, url) => {
           if (err) {
             console.error('Error al convertir QR a Data URL:', err);
+            this.isGeneratingQR = false;
             reject('Error al generar el Data URL del QR');
           }
           resolve(url);
@@ -61,29 +76,41 @@ export class WhatsappService implements OnModuleInit {
       });
 
       client.on('ready', () => {
-        console.log(`Cliente temporal ${tempClientId} conectado. Ahora debe ser asociado a un vendedor.`);
-        // IMPORTANTE: En un sistema de producción, necesitarías una forma de asociar
-        // este `tempClientId` con el `usuario_id` real que se conectó.
+        console.log(`Cliente temporal ${tempClientId} conectado. Se autodestruirá.`);
+        clearTimeout(timeout);
+        client.destroy(); // Destruimos el cliente una vez conectado
+        this.isGeneratingQR = false;
+        // Aquí deberías tener un webhook o socket para notificar al frontend que se escaneó
+        // y ahora se debe asociar a un usuario.
+      });
+      
+      client.on('auth_failure', (msg) => {
+        console.error('Fallo de autenticación temporal:', msg);
+        clearTimeout(timeout);
+        this.isGeneratingQR = false;
+        reject('Fallo de autenticación.');
       });
 
       client.initialize().catch(err => {
+        clearTimeout(timeout);
         console.error(`Error al inicializar cliente temporal:`, err);
+        this.isGeneratingQR = false;
         reject(`Error al inicializar cliente: ${err.message}`);
       });
+
+    }).finally(() => {
+        // --> NUEVO: Nos aseguramos de desbloquear el flag al finalizar
+        this.isGeneratingQR = false;
     });
   }
 
-  /**
-   * Crea e inicializa una sesión de WhatsApp para un usuario específico.
-   * @param userId - El ID del usuario (vendedor) para el cual crear la sesión.
-   */
   private createSession(userId: string) {
     if (this.clients.has(userId)) {
       console.log(`La sesión para el usuario ${userId} ya está iniciada.`);
       return;
     }
     const client = new Client({
-        authStrategy: new LocalAuth({ clientId: userId }),
+        authStrategy: new LocalAuth({ clientId: userId, dataPath: './.wwebjs_auth' }),
         puppeteer: { 
             headless: true,
             args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-accelerated-2d-canvas', '--no-first-run', '--no-zygote', '--single-process', '--disable-gpu']
@@ -95,19 +122,23 @@ export class WhatsappService implements OnModuleInit {
         this.clients.set(userId, client);
     });
     
-    client.on('disconnected', () => {
-        console.log(`Usuario ${userId} desconectado. Eliminando sesión.`);
+    client.on('disconnected', async (reason) => {
+        console.log(`Usuario ${userId} desconectado por: ${reason}. Eliminando sesión.`);
         this.clients.delete(userId);
+        // Opcional: podrías intentar reconectar aquí o limpiar la carpeta de sesión
+        const sessionPath = `./.wwebjs_auth/session-${userId}`;
+        if (fs.existsSync(sessionPath)) {
+            // fs.rmSync(sessionPath, { recursive: true, force: true });
+        }
     });
 
     client.initialize().catch(error => {
         console.error(`No se pudo inicializar la sesión para ${userId}:`, error.message);
     });
   }
-
-  /**
-   * Obtiene las conversaciones de un vendedor a partir de su sesión activa.
-   */
+  
+  // --- El resto de tus funciones se mantienen igual ---
+  
   async getConversations(sellerId: string): Promise<any[]> {
     const client = this.clients.get(sellerId);
     if (!client) {
@@ -130,15 +161,12 @@ export class WhatsappService implements OnModuleInit {
     return formattedChats;
   }
 
-  /**
-   * Obtiene los mensajes de un chat específico, buscando en todas las sesiones activas.
-   */
   async getMessagesFromChat(chatId: string): Promise<any[]> {
      for (const client of this.clients.values()) {
         try {
             const chat = await client.getChatById(chatId);
             if(chat) {
-                const messages = await chat.fetchMessages({ limit: 50 }); // Obtiene los últimos 50 mensajes
+                const messages = await chat.fetchMessages({ limit: 50 });
                 return messages.map(msg => ({
                     id: msg.id._serialized,
                     cuerpo: msg.body,
@@ -151,7 +179,6 @@ export class WhatsappService implements OnModuleInit {
     throw new NotFoundException(`Chat con ID ${chatId} no encontrado en ninguna sesión activa.`);
   }
 
-  // --- Tus métodos existentes para la base de datos (con pequeñas mejoras) ---
   async conectarNumero(dto: ConectarNumeroDto): Promise<WhatsappFlota> {
     const usuario = await this.userRepository.findOneBy({ id: dto.usuario_id });
     if (!usuario) {
@@ -160,9 +187,8 @@ export class WhatsappService implements OnModuleInit {
     const nuevaConexion = this.whatsappRepository.create({
       ...dto,
       usuario,
-      estado: 'Iniciando', // Cambiamos el estado inicial
+      estado: 'Iniciando',
     });
-    // Iniciar la sesión de WhatsApp para este nuevo número
     this.createSession(dto.usuario_id); 
     return this.whatsappRepository.save(nuevaConexion);
   }
@@ -177,14 +203,21 @@ export class WhatsappService implements OnModuleInit {
         throw new NotFoundException(`Conexión con ID "${id}" no encontrada.`);
     }
     
-    // Lógica para cerrar y eliminar la sesión de WhatsApp activa
     const client = this.clients.get(conexion.usuario.id);
     if (client) {
-        await client.logout();
+        await client.destroy(); // Usamos destroy para una limpieza más profunda
         this.clients.delete(conexion.usuario.id);
     }
+    
+    // Limpiamos la carpeta de la sesión para evitar problemas al reconectar
+    const sessionPath = `./.wwebjs_auth/session-${conexion.usuario.id}`;
+    if (fs.existsSync(sessionPath)) {
+        fs.rmSync(sessionPath, { recursive: true, force: true });
+        console.log(`Carpeta de sesión eliminada: ${sessionPath}`);
+    }
+
     await this.whatsappRepository.delete(id);
-    return { message: `La conexión ha sido eliminada.` };
+    return { message: `La conexión ha sido eliminada y la sesión cerrada.` };
   }
 }
 
