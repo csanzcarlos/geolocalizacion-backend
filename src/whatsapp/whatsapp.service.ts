@@ -1,11 +1,11 @@
 // ✅ REEMPLAZA EL CONTENIDO DE TU ARCHIVO CON ESTE CÓDIGO CORREGIDO
 
-import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { WhatsappFlota } from './entities/whatsapp.entity';
 import { User } from '../users/entities/user.entity';
-import { Client, LocalAuth, MessageMedia } from 'whatsapp-web.js';
+import { Client, LocalAuth } from 'whatsapp-web.js';
 import * as qrcode from 'qrcode';
 import { ConectarNumeroDto } from './dto/conectar-numero.dto';
 import * as fs from 'fs';
@@ -14,6 +14,7 @@ import * as fs from 'fs';
 export class WhatsappService implements OnModuleInit {
   private clients = new Map<string, Client>();
   private isGeneratingQR = false;
+  private readonly logger = new Logger(WhatsappService.name);
 
   constructor(
     @InjectRepository(WhatsappFlota)
@@ -23,11 +24,11 @@ export class WhatsappService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    console.log('Reiniciando sesiones de WhatsApp existentes...');
+    this.logger.log('Reiniciando sesiones de WhatsApp existentes...');
     const flota = await this.obtenerTodaLaFlota();
     for (const agente of flota) {
       if (agente.usuario) {
-        console.log(`Intentando reiniciar sesión para ${agente.nombre_agente} (ID: ${agente.usuario.id})`);
+        this.logger.log(`Intentando reiniciar sesión para ${agente.nombre_agente} (ID: ${agente.usuario.id})`);
         this.createSession(agente.usuario.id);
       }
     }
@@ -35,106 +36,131 @@ export class WhatsappService implements OnModuleInit {
 
   startNewSession(): Promise<string> {
     if (this.isGeneratingQR) {
-        console.log('Ya hay un proceso de generación de QR en curso.');
-        return Promise.reject(new Error('Ya se está generando un código QR. Por favor, espera.'));
+      this.logger.warn('Ya hay un proceso de generación de QR en curso.');
+      return Promise.reject(new Error('Ya se está generando un código QR. Por favor, espera.'));
     }
     
     this.isGeneratingQR = true;
 
-    // --> CAMBIO: Se elimina el .finally() y la lógica se mueve adentro de la promesa
     return new Promise((resolve, reject) => {
-      const tempClientId = `session-${Date.now()}`;
-      console.log(`Creando cliente temporal con ID: ${tempClientId}`);
+      const tempClientId = `session-temp-${Date.now()}`;
+      this.logger.log(`Creando cliente temporal con ID: ${tempClientId}`);
       
       const client = new Client({
         authStrategy: new LocalAuth({ clientId: tempClientId, dataPath: './.wwebjs_auth' }),
         puppeteer: { 
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-extensions'] 
+          headless: true,
+          // CAMBIO CLAVE: Argumentos optimizados para entornos con pocos recursos como Render
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process', // <- Este es muy importante en entornos con poca RAM
+            '--disable-gpu'
+          ] 
         },
       });
 
       const timeout = setTimeout(() => {
-        console.error('Timeout: El QR no se generó en 30 segundos.');
-        client.destroy();
-        this.isGeneratingQR = false; // --> Se añade aquí
-        reject('Timeout al generar el QR. Inténtalo de nuevo.');
-      }, 30000);
+        this.logger.error('Timeout: El QR no se generó en 45 segundos.');
+        client.destroy().catch(e => this.logger.error('Error al destruir cliente en timeout', e));
+        this.isGeneratingQR = false;
+        reject(new Error('Timeout al generar el QR. Inténtalo de nuevo.'));
+      }, 45000); // Aumentamos el timeout a 45 segundos por si acaso
 
-      client.on('qr', (qr) => {
+      client.once('qr', (qr) => {
         clearTimeout(timeout);
-        console.log('QR RECIBIDO, generando Data URL...');
+        this.logger.log('QR RECIBIDO, generando Data URL...');
         qrcode.toDataURL(qr, (err, url) => {
+          this.isGeneratingQR = false;
           if (err) {
-            console.error('Error al convertir QR a Data URL:', err);
-            this.isGeneratingQR = false; // --> Se añade aquí
-            reject('Error al generar el Data URL del QR');
+            this.logger.error('Error al convertir QR a Data URL:', err);
+            reject(new Error('Error al generar el Data URL del QR'));
+          } else {
+            resolve(url);
           }
-          this.isGeneratingQR = false; // --> Se añade aquí
-          resolve(url);
+          client.destroy().catch(e => this.logger.error('Error al destruir cliente temporal tras QR', e));
         });
       });
 
-      client.on('ready', () => {
-        console.log(`Cliente temporal ${tempClientId} conectado. Se autodestruirá.`);
+      client.once('ready', () => {
+        this.logger.log(`Cliente temporal ${tempClientId} conectado. Se autodestruirá.`);
         clearTimeout(timeout);
-        client.destroy();
-        this.isGeneratingQR = false; // --> Se añade aquí
+        this.isGeneratingQR = false;
+        client.destroy().catch(e => this.logger.error('Error al destruir cliente temporal en "ready"', e));
+        reject(new Error('El teléfono ya está conectado. No se necesita escanear.'));
       });
       
-      client.on('auth_failure', (msg) => {
-        console.error('Fallo de autenticación temporal:', msg);
+      client.once('auth_failure', (msg) => {
+        this.logger.error('Fallo de autenticación temporal:', msg);
         clearTimeout(timeout);
-        this.isGeneratingQR = false; // --> Se añade aquí
-        reject('Fallo de autenticación.');
+        this.isGeneratingQR = false;
+        reject(new Error('Fallo de autenticación.'));
       });
 
       client.initialize().catch(err => {
         clearTimeout(timeout);
-        console.error(`Error al inicializar cliente temporal:`, err);
-        this.isGeneratingQR = false; // --> Se añade aquí
-        reject(`Error al inicializar cliente: ${err.message}`);
+        this.logger.error(`Error al inicializar cliente temporal:`, err);
+        this.isGeneratingQR = false;
+        reject(new Error(`Error al inicializar cliente: ${err.message}`));
       });
     });
   }
 
   private createSession(userId: string) {
     if (this.clients.has(userId)) {
-      console.log(`La sesión para el usuario ${userId} ya está iniciada.`);
+      this.logger.log(`La sesión para el usuario ${userId} ya existe o se está iniciando.`);
       return;
     }
+    this.logger.log(`Creando nueva sesión para el usuario ${userId}.`);
     const client = new Client({
         authStrategy: new LocalAuth({ clientId: userId, dataPath: './.wwebjs_auth' }),
         puppeteer: { 
             headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-accelerated-2d-canvas', '--no-first-run', '--no-zygote', '--single-process', '--disable-gpu']
+             // CAMBIO CLAVE: Argumentos optimizados también para las sesiones persistentes
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--no-zygote',
+                '--single-process',
+                '--disable-gpu'
+            ]
         },
     });
 
     client.on('ready', () => {
-        console.log(`Sesión para el usuario ${userId} está lista y conectada.`);
+        this.logger.log(`Sesión para el usuario ${userId} está lista y conectada.`);
         this.clients.set(userId, client);
     });
     
     client.on('disconnected', async (reason) => {
-        console.log(`Usuario ${userId} desconectado por: ${reason}. Eliminando sesión.`);
+        this.logger.log(`Usuario ${userId} desconectado por: ${reason}. Eliminando sesión.`);
+        client.destroy().catch(e => this.logger.error('Error al destruir cliente en "disconnected"', e));
         this.clients.delete(userId);
     });
 
     client.initialize().catch(error => {
-        console.error(`No se pudo inicializar la sesión para ${userId}:`, error.message);
+        this.logger.error(`No se pudo inicializar la sesión para ${userId}:`, error.message);
     });
   }
   
+  // ... (El resto de las funciones se mantienen igual) ...
+
   async getConversations(sellerId: string): Promise<any[]> {
     const client = this.clients.get(sellerId);
-    if (!client) {
-      throw new NotFoundException(`El vendedor con ID ${sellerId} no tiene una sesión de WhatsApp activa.`);
+    if (!client || (await client.getState()) !== 'CONNECTED') {
+      throw new NotFoundException(`El vendedor con ID ${sellerId} no tiene una sesión de WhatsApp activa o conectada.`);
     }
 
     const chats = await client.getChats();
     const formattedChats = await Promise.all(
-        chats.filter(chat => !chat.isGroup).map(async chat => {
+        chats.filter(chat => !chat.isGroup && chat.lastMessage).map(async chat => {
             return {
                 id: chat.id._serialized,
                 nombre_cliente: chat.name,
@@ -145,11 +171,11 @@ export class WhatsappService implements OnModuleInit {
             };
         })
     );
-    return formattedChats;
+    return formattedChats.sort((a, b) => b.timestamp - a.timestamp);
   }
 
   async getMessagesFromChat(chatId: string): Promise<any[]> {
-     for (const client of this.clients.values()) {
+    for (const client of this.clients.values()) {
         try {
             const chat = await client.getChatById(chatId);
             if(chat) {
@@ -176,8 +202,9 @@ export class WhatsappService implements OnModuleInit {
       usuario,
       estado: 'Iniciando',
     });
+    const savedConnection = await this.whatsappRepository.save(nuevaConexion);
     this.createSession(dto.usuario_id); 
-    return this.whatsappRepository.save(nuevaConexion);
+    return savedConnection;
   }
 
   async obtenerTodaLaFlota(): Promise<WhatsappFlota[]> {
@@ -199,7 +226,7 @@ export class WhatsappService implements OnModuleInit {
     const sessionPath = `./.wwebjs_auth/session-${conexion.usuario.id}`;
     if (fs.existsSync(sessionPath)) {
         fs.rmSync(sessionPath, { recursive: true, force: true });
-        console.log(`Carpeta de sesión eliminada: ${sessionPath}`);
+        this.logger.log(`Carpeta de sesión eliminada: ${sessionPath}`);
     }
 
     await this.whatsappRepository.delete(id);
