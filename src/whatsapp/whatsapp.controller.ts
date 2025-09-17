@@ -18,7 +18,7 @@ export class WhatsappController {
       return { qr: qrCode };
     } catch (error) {
       console.error('Error en el controlador al intentar generar QR:', error);
-      throw new NotFoundException('No se pudo generar el código QR en este momento.');
+      throw new NotFoundException(error.message || 'No se pudo generar el código QR en este momento.');
     }
   }
   
