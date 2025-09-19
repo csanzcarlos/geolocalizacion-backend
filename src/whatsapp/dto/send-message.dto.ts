@@ -9,4 +9,8 @@ export class SendMessageDto {
   @IsString()
   @IsNotEmpty()
   mensaje: string;
+  
+  @IsString() // ✅ AÑADE ESTA PROPIEDAD
+  @IsNotEmpty()
+  vendedorId: string;
 }
