@@ -1,17 +1,28 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  OneToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Geolocation } from '../../geolocation/entities/geolocation.entity';
-import { OneToOne } from 'typeorm';
+import { WhatsappFlota } from '../../whatsapp/entities/whatsapp-flota.entity'; // ✅ Importa tu entidad de WhatsApp
 
 @Entity({ name: 'usuarios' })
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
   @Column({ unique: true })
   email: string;
+
   @Column()
   password_hash: string;
+
   @Column()
   nombre: string;
+
   @Column()
   rol: string;
 
@@ -21,17 +32,17 @@ export class User {
   @CreateDateColumn()
   fecha_creacion: Date;
 
-  
-  // ...otras columnas como @Column() nombre: string;
+  @Column({ type: 'varchar', nullable: true, select: false })
+  resetPasswordToken: string;
 
-@Column({ type: 'varchar', nullable: true, select: false })
-resetPasswordToken: string;
+  @Column({ type: 'timestamp', nullable: true, select: false })
+  resetPasswordExpires: Date;
 
-@Column({ type: 'timestamp', nullable: true, select: false })
-resetPasswordExpires: Date;
-
-@OneToOne(() => Geolocation, (geolocation) => geolocation.user)
+  @OneToOne(() => Geolocation, (geolocation) => geolocation.user)
+  @JoinColumn()
   geolocation: Geolocation;
+
+  // ✅ Añade la relación de WhatsApp aquí
+  @OneToOne(() => WhatsappFlota, (whatsapp) => whatsapp.usuario)
+  whatsapp: WhatsappFlota;
 }
-
-

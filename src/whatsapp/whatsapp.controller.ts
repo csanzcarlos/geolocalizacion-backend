@@ -1,44 +1,63 @@
-// ✅ ESTE ARCHIVO ESTÁ CORRECTO, NO ES NECESARIO HACER CAMBIOS
-import { Controller, Get, Param, Post, Body, Delete, InternalServerErrorException } from '@nestjs/common';
+import { Controller, Get, Param, Delete } from '@nestjs/common';
 import { WhatsappService } from './whatsapp.service';
-import { ConectarNumeroDto } from './dto/conectar-numero.dto';
 
 @Controller('whatsapp')
 export class WhatsappController {
- constructor(private readonly whatsappService: WhatsappService) {}
+  constructor(private readonly whatsappService: WhatsappService) {}
 
- @Get('connect')
- async startConnection() {
-  try {
-   const qr = await this.whatsappService.startNewSession();
-   return { qr };
-  } catch (error) {
-   throw new InternalServerErrorException(error.message);
+  /**
+   * Inicia la conexión y genera un QR para un usuario específico.
+   */
+  @Get('connect/:userId')
+  generarQr(@Param('userId') userId: string) {
+    return this.whatsappService.generarQrParaUsuario(userId);
   }
- }
 
- @Get('conversations/:sellerId')
- getConversations(@Param('sellerId') sellerId: string) {
-  return this.whatsappService.getConversations(sellerId);
- }
+ @Post('send-message')
+  sendMessage(@Body() sendMessageDto: SendMessageDto) {
+    return this.whatsappService.sendMessage(sendMessageDto);
+  }
 
- @Get('messages/:chatId')
- getMessages(@Param('chatId') chatId: string) {
-  return this.whatsappService.getMessagesFromChat(chatId);
- }
+  // ✅ NUEVO ENDPOINT AÑADIDO
+  /**
+   * Verifica el estado de la conexión de un usuario.
+   * Usado por el frontend para saber cuándo se completó el escaneo del QR.
+   */
+  @Get('status/:userId')
+  getConnectionStatus(@Param('userId') userId: string) {
+    return this.whatsappService.getConnectionStatus(userId);
+  }
 
- @Post('flota')
- conectar(@Body() dto: ConectarNumeroDto) {
-  return this.whatsappService.conectarNumero(dto);
- }
 
- @Get('flota')
- obtenerFlota() {
-  return this.whatsappService.obtenerTodaLaFlota();
- }
+  /**
+   * Obtiene la lista de todos los agentes conectados a WhatsApp.
+   */
+  @Get('flota')
+  obtenerFlota() {
+    return this.whatsappService.obtenerTodaLaFlota();
+  }
 
- @Delete('flota/:id')
- desconectar(@Param('id') id: string) {
-  return this.whatsappService.desconectarNumero(id);
- }
+  /**
+   * Desconecta un número de la flota y elimina su sesión.
+   */
+  @Delete('flota/:id')
+  desconectar(@Param('id') id: string) {
+    return this.whatsappService.desconectarNumero(id);
+  }
+
+  /**
+   * Obtiene las conversaciones de un vendedor específico que esté conectado.
+   */
+  @Get('conversations/:sellerId')
+  getConversations(@Param('sellerId') sellerId: string) {
+    return this.whatsappService.getConversations(sellerId);
+  }
+
+  /**
+   * Obtiene los mensajes de un chat (conversación) específico.
+   */
+  @Get('messages/:chatId')
+  getMessages(@Param('chatId') chatId: string) {
+    return this.whatsappService.getMessagesFromChat(chatId);
+  }
 }

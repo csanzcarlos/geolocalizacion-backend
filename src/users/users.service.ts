@@ -12,12 +12,14 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import * as bcrypt from 'bcrypt';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly jwtService: JwtService,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<Omit<User, 'password_hash'>> {
@@ -44,11 +46,63 @@ export class UsersService {
     return result;
   }
 
+  // ✅ FUNCIÓN 'findByEmail' AÑADIDA
+  /**
+   * Busca un usuario por su email.
+   * Es necesaria para el proceso de autenticación para validar si el usuario existe.
+   */
+  async findByEmail(email: string): Promise<User | null> { // <-- CAMBIO AQUÍ
+  return this.userRepository.findOne({ 
+    where: { email },
+    select: ['id', 'nombre', 'email', 'rol', 'password_hash'],
+  });
+}
+
+  async login(loginUserDto: LoginUserDto) {
+    const { email, password } = loginUserDto;
+
+    // Usamos la nueva función para encontrar al usuario
+    const user = await this.findByEmail(email);
+
+    if (!user || !user.password_hash) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    const isPasswordMatching = await bcrypt.compare(password, user.password_hash);
+
+    if (!isPasswordMatching) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    const payload = { email: user.email, sub: user.id, rol: user.rol };
+
+    // Retornamos el token JWT y los datos básicos del usuario
+    return {
+      access_token: this.jwtService.sign(payload),
+      user: {
+        id: user.id,
+        nombre: user.nombre,
+        rol: user.rol,
+      },
+    };
+  }
+
   async findAll() {
     return this.userRepository.find({
       where: { status: Not('archivado') },
       select: ['id', 'nombre', 'email', 'rol', 'status', 'fecha_creacion'],
     });
+  }
+  
+  async findOne(id: string) {
+    const user = await this.userRepository.findOneBy({ id });
+
+    if (!user) {
+      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+    }
+
+    const { password_hash, ...result } = user;
+    return result;
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
@@ -60,27 +114,13 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
     }
-
+    
     if (updateUserDto.password) {
       const saltRounds = 10;
       user.password_hash = await bcrypt.hash(updateUserDto.password, saltRounds);
     }
-
+    
     await this.userRepository.save(user);
-    const { password_hash, ...result } = user;
-    return result;
-  }
-
-  async findOne(id: string) {
-    // Busca al usuario por su ID
-    const user = await this.userRepository.findOneBy({ id });
-
-    // Si no lo encuentra, lanza un error 404
-    if (!user) {
-      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
-    }
-
-    // Quita el password_hash antes de devolver el resultado
     const { password_hash, ...result } = user;
     return result;
   }
@@ -100,32 +140,5 @@ export class UsersService {
       where: { status: 'archivado' },
       select: ['id', 'nombre', 'email', 'rol', 'status', 'fecha_creacion'],
     });
-  
-  
-  }
-  
-  /**
-   * ✅ LÓGICA DE LOGIN CORREGIDA Y MÁS ROBUSTA
-   */
-  async login(loginUserDto: LoginUserDto): Promise<Omit<User, 'password_hash'>> {
-    const { email, password } = loginUserDto;
-    const user = await this.userRepository.findOneBy({ email });
-
-    // 1. Verificación robusta: Si el usuario no existe O si existe pero no tiene un hash de contraseña,
-    //    se lanza la misma excepción de \"credenciales inválidas\".
-    if (!user || !user.password_hash) {
-      throw new UnauthorizedException('Credenciales inválidas');
-    }
-
-    // 2. Compara la contraseña enviada con el hash guardado.
-    const isPasswordMatching = await bcrypt.compare(password, user.password_hash);
-    
-    if (!isPasswordMatching) {
-      throw new UnauthorizedException('Credenciales inválidas');
-    }
-
-    const { password_hash, ...userWithoutPassword } = user;
-    return userWithoutPassword;
   }
 }
-
