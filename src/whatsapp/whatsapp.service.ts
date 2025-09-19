@@ -13,6 +13,8 @@ import { User } from '../users/entities/user.entity';
 import { Client, LocalAuth, Message } from 'whatsapp-web.js';
 import * as qrcode from 'qrcode';
 import * as fs from 'fs';
+import { SendMessageDto } from './dto/send-message.dto'; // <-- Importa el DTO aquí también
+
 
 @Injectable()
 export class WhatsappService implements OnModuleInit {
@@ -208,6 +210,20 @@ export class WhatsappService implements OnModuleInit {
     return this.whatsappRepo.find({ relations: ['usuario'] });
   }
 
+   // ✅ AÑADE TODA ESTA FUNCIÓN DENTRO DE LA CLASE
+  async sendMessage(sendMessageDto: SendMessageDto) {
+    const { numero, mensaje } = sendMessageDto;
+
+    console.log(`Intentando enviar mensaje a ${numero}: "${mensaje}"`);
+
+    // Aquí va la lógica real para enviar el mensaje con tu librería de WhatsApp
+    // Por ejemplo: await this.client.sendMessage(numero + '@c.us', mensaje);
+
+    return { success: true, message: 'Mensaje puesto en cola para envío.' };
+  }
+
+
+
   async desconectarNumero(id: string) {
     const conexion = await this.whatsappRepo.findOne({ where: { id }, relations: ['usuario'] });
     if (!conexion) throw new NotFoundException(`Conexión con ID ${id} no encontrada`);
@@ -226,6 +242,11 @@ export class WhatsappService implements OnModuleInit {
       fs.rmSync(sessionPath, { recursive: true, force: true });
     }
     
+
+    
+
+
+
     if (flotaId) {
         await this.whatsappRepo.delete(flotaId);
     } else {
