@@ -24,10 +24,12 @@ export class AuthService {
     return null; // Retorna null si el usuario no existe o la contraseña es incorrecta
   }
 
-  async login(user: any) {
-    const payload = { username: user.email, sub: user.id, rol: user.rol };
-    return {
-      access_token: this.jwtService.sign(payload),
-    };
-  }
+
+async login(user: any) {
+  const payload = { username: user.email, sub: user.id, rol: user.rol };
+  return {
+    access_token: this.jwtService.sign(payload),
+    user: user // <-- ✅ AÑADE ESTA LÍNEA
+  };
+}
 }
