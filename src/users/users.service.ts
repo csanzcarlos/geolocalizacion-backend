@@ -1,9 +1,11 @@
-import { 
-  Injectable, 
-  BadRequestException, 
-  ConflictException, 
+// src/users/users.service.ts
+
+import {
+  Injectable,
+  BadRequestException,
+  ConflictException,
   UnauthorizedException,
-  NotFoundException
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not } from 'typeorm';
@@ -46,22 +48,15 @@ export class UsersService {
     return result;
   }
 
-  // ✅ FUNCIÓN 'findByEmail' AÑADIDA
-  /**
-   * Busca un usuario por su email.
-   * Es necesaria para el proceso de autenticación para validar si el usuario existe.
-   */
-  async findByEmail(email: string): Promise<User | null> { // <-- CAMBIO AQUÍ
-  return this.userRepository.findOne({ 
-    where: { email },
-    select: ['id', 'nombre', 'email', 'rol', 'password_hash'],
-  });
-}
+  async findByEmail(email: string): Promise<User | null> {
+    return this.userRepository.findOne({ 
+      where: { email },
+      select: ['id', 'nombre', 'email', 'rol', 'password_hash'],
+    });
+  }
 
   async login(loginUserDto: LoginUserDto) {
     const { email, password } = loginUserDto;
-
-    // Usamos la nueva función para encontrar al usuario
     const user = await this.findByEmail(email);
 
     if (!user || !user.password_hash) {
@@ -76,7 +71,6 @@ export class UsersService {
 
     const payload = { email: user.email, sub: user.id, rol: user.rol };
 
-    // Retornamos el token JWT y los datos básicos del usuario
     return {
       access_token: this.jwtService.sign(payload),
       user: {
@@ -123,7 +117,7 @@ export class UsersService {
     await this.userRepository.save(user);
     const { password_hash, ...result } = user;
     return result;
-  }
+  } // <-- ✅ ¡ESTA ES LA LLAVE QUE FALTABA!
 
   async remove(id: string) {
     const user = await this.userRepository.findOneBy({ id });

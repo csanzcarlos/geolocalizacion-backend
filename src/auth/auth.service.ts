@@ -11,17 +11,16 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  // ✅ REEMPLAZA TU FUNCIÓN CON ESTA
-  async validateUser(email: string, pass: string): Promise<any> {
+ async validateUser(email: string, pass: string): Promise<any> {
     const user = await this.usersService.findByEmail(email);
     
-    // 2. Compara la contraseña del login (pass) con la guardada (user.password)
-    if (user && await bcrypt.compare(pass, user.password)) {
-      const { password, ...result } = user; // Quita la contraseña del objeto
-      return result; // Retorna los datos del usuario si todo es correcto
+    // CORREGIDO: Se usa user.password_hash, que es como se llama en tu base de datos.
+    if (user && await bcrypt.compare(pass, user.password_hash)) {
+      const { password_hash, ...result } = user; // <-- CORREGIDO
+      return result;
     }
     
-    return null; // Retorna null si el usuario no existe o la contraseña es incorrecta
+    return null;
   }
 
 
