@@ -1,27 +1,22 @@
-2025/09/19-23:37:32.699 48d0 Reusing MANIFEST C:\xampp\htdocs\geolocalizacion\geolocalizacion-backend\.wwebjs_auth\session-795fccf1-fa92-4435-a170-5562f3de6540\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
-2025/09/19-23:37:32.700 48d0 Recovering log #217
-2025/09/19-23:37:32.754 48d0 Reusing old log C:\xampp\htdocs\geolocalizacion\geolocalizacion-backend\.wwebjs_auth\session-795fccf1-fa92-4435-a170-5562f3de6540\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000217.log 
-2025/09/19-23:37:37.244 48d0 Level-0 table #229: started
-2025/09/19-23:37:37.259 48d0 Level-0 table #229: 522751 bytes OK
-2025/09/19-23:37:37.263 48d0 Delete type=0 #217
-2025/09/19-23:37:37.264 48d0 Manual compaction at level-0 from '\x00\x1a\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x1b\x00\x00\x00' @ 0 : 0; will stop at (end)
-2025/09/19-23:37:39.493 53cc Compacting 1@1 + 8@2 files
-2025/09/19-23:37:39.655 53cc Generated table #230@1: 55224 keys, 2215325 bytes
-2025/09/19-23:37:39.794 53cc Generated table #231@1: 26231 keys, 2183908 bytes
-2025/09/19-23:37:39.835 53cc Generated table #232@1: 2140 keys, 2146982 bytes
-2025/09/19-23:37:39.872 53cc Generated table #233@1: 2479 keys, 2153057 bytes
-2025/09/19-23:37:39.948 53cc Generated table #234@1: 19615 keys, 2205367 bytes
-2025/09/19-23:37:40.044 53cc Generated table #235@1: 25838 keys, 2203579 bytes
-2025/09/19-23:37:40.205 53cc Generated table #236@1: 75093 keys, 2219321 bytes
-2025/09/19-23:37:40.241 53cc Generated table #237@1: 22984 keys, 547188 bytes
-2025/09/19-23:37:40.241 53cc Compacted 1@1 + 8@2 files => 15874727 bytes
-2025/09/19-23:37:40.243 53cc compacted to: files[ 0 0 8 0 0 0 0 ]
-2025/09/19-23:37:40.244 53cc Delete type=2 #219
-2025/09/19-23:37:40.244 53cc Delete type=2 #220
-2025/09/19-23:37:40.244 53cc Delete type=2 #221
-2025/09/19-23:37:40.244 53cc Delete type=2 #222
-2025/09/19-23:37:40.244 53cc Delete type=2 #223
-2025/09/19-23:37:40.244 53cc Delete type=2 #224
-2025/09/19-23:37:40.244 53cc Delete type=2 #225
-2025/09/19-23:37:40.244 53cc Delete type=2 #226
-2025/09/19-23:37:40.244 53cc Delete type=2 #229
+2025/09/20-01:15:20.817 5528 Reusing MANIFEST C:\xampp\htdocs\geolocalizacion\geolocalizacion-backend\.wwebjs_auth\session-795fccf1-fa92-4435-a170-5562f3de6540\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2025/09/20-01:15:20.817 5528 Recovering log #267
+2025/09/20-01:15:20.820 5528 Reusing old log C:\xampp\htdocs\geolocalizacion\geolocalizacion-backend\.wwebjs_auth\session-795fccf1-fa92-4435-a170-5562f3de6540\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000267.log 
+2025/09/20-01:15:20.820 5528 Delete type=2 #260
+2025/09/20-01:15:20.820 5528 Delete type=2 #261
+2025/09/20-01:15:20.820 5528 Delete type=2 #262
+2025/09/20-01:15:20.820 5528 Delete type=2 #263
+2025/09/20-01:15:20.820 5528 Delete type=2 #264
+2025/09/20-01:15:20.821 5528 Delete type=2 #265
+2025/09/20-01:15:20.821 5528 Delete type=2 #266
+2025/09/20-01:15:20.821 5528 Delete type=2 #268
+2025/09/20-01:15:22.309 5528 Level-0 table #278: started
+2025/09/20-01:15:22.313 5528 Level-0 table #278: 86168 bytes OK
+2025/09/20-01:15:22.316 5528 Delete type=0 #267
+2025/09/20-01:15:22.316 5528 Manual compaction at level-0 from '\x00\x1c\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x1d\x00\x00\x00' @ 0 : 0; will stop at (end)
+2025/09/20-01:15:24.379 569c Compacting 1@1 + 9@2 files
+2025/09/20-01:15:24.481 569c Generated table #279@1: 65016 keys, 2216647 bytes
+2025/09/20-01:15:24.573 569c Generated table #280@1: 35346 keys, 2198212 bytes
+2025/09/20-01:15:24.620 569c Generated table #281@1: 2537 keys, 2154230 bytes
+2025/09/20-01:15:24.715 569c Generated table #282@1: 2000 keys, 2146310 bytes
+2025/09/20-01:15:24.787 569c Generated table #283@1: 12270 keys, 2173790 bytes
+2025/09/20-01:15:24.884 569c Generated table #284@1: 31639 keys, 2244331 bytes
